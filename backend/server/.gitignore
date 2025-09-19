@@ -1,0 +1,6 @@
+.env
+env.values.txt
+node_modules/
+debug.log
+
+
