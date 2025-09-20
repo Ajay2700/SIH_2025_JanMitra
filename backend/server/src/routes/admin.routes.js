@@ -6,8 +6,9 @@ import {
   adminAssignTicket,
   adminUpdateTicketStatus,
   adminUpdateTicketPriority,
-  adminListServiceRequests,
-  adminUpdateServiceRequestStatus,
+  adminListDepartments,
+  adminCreateDepartment,
+  adminUpdateDepartment,
   adminListStaff,
   adminCreateStaff,
   adminUpdateStaff,
@@ -21,20 +22,25 @@ const router = Router();
 
 router.use(requireAuth(['admin']));
 
+// Ticket management
 router.get('/tickets', adminListTickets);
 router.get('/tickets/:id', adminGetTicket);
 router.patch('/tickets/:id/assign', adminAssignTicket);
 router.patch('/tickets/:id/status', adminUpdateTicketStatus);
 router.patch('/tickets/:id/priority', adminUpdateTicketPriority);
 
-router.get('/service_requests', adminListServiceRequests);
-router.patch('/service_requests/:id/status', adminUpdateServiceRequestStatus);
+// Department management
+router.get('/departments', adminListDepartments);
+router.post('/departments', adminCreateDepartment);
+router.patch('/departments/:id', adminUpdateDepartment);
 
+// Staff management
 router.get('/staff', adminListStaff);
 router.post('/staff', adminCreateStaff);
 router.patch('/staff/:id', adminUpdateStaff);
 router.delete('/staff/:id', adminDeleteStaff);
 
+// Analytics
 router.get('/analytics/tickets', adminAnalyticsTickets);
 router.get('/analytics/departments', adminAnalyticsDepartments);
 router.get('/analytics/trends', adminAnalyticsTrends);

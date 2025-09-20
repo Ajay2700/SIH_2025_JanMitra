@@ -3,6 +3,8 @@ import cors from 'cors';
 import authRouter from './routes/auth.routes.js';
 import ticketsRouter from './routes/tickets.routes.js';
 import adminRouter from './routes/admin.routes.js';
+import categoriesRouter from './routes/categories.routes.js';
+import departmentsRouter from './routes/departments.routes.js';
 
 const app = express();
 
@@ -14,6 +16,8 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/auth', authRouter);
 app.use('/tickets', ticketsRouter);
 app.use('/admin', adminRouter);
+app.use('/categories', categoriesRouter);
+app.use('/departments', departmentsRouter);
 
 // Global error handler
 // eslint-disable-next-line no-unused-vars

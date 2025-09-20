@@ -1,41 +1,95 @@
-import bcrypt from 'bcryptjs';
 import { supabase } from '../config/supabase.js';
-import { signToken } from '../middleware/auth.js';
 
 export async function login(req, res) {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('id, email, password, role, full_name')
-    .eq('email', email)
-    .maybeSingle();
-  if (error) return res.status(500).json({ error: error.message });
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  try {
+    // Use Supabase Auth for authentication
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  let isValid = false;
-  const stored = user.password || '';
-  const looksHashed = typeof stored === 'string' && stored.startsWith('$2');
-  if (looksHashed) {
-    isValid = await bcrypt.compare(password, stored);
-  } else {
-    // fallback for plaintext records; migrate to hash on successful login
-    isValid = stored === password;
-    if (isValid) {
-      try {
-        const newHash = await bcrypt.hash(password, 10);
-        await supabase.from('users').update({ password: newHash }).eq('id', user.id);
-      } catch {
-        // ignore migration failure; login will still proceed
-      }
+    if (authError) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // Get user profile from our users table
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('id, email, name, user_type, department_id, phone, address')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      return res.status(500).json({ error: 'Failed to fetch user profile' });
+    }
+
+    return res.json({
+      token: authData.session.access_token,
+      refresh_token: authData.session.refresh_token,
+      user_type: userProfile.user_type,
+      user: {
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.name,
+        user_type: userProfile.user_type,
+        department_id: userProfile.department_id,
+        phone: userProfile.phone,
+        address: userProfile.address
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export async function register(req, res) {
+  const { email, password, name, phone, user_type = 'citizen' } = req.body || {};
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: 'email, password, and name required' });
   }
 
-  if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+  try {
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-  const token = signToken(user);
-  return res.json({ token, role: user.role, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } });
+    if (authError) {
+      return res.status(400).json({ error: authError.message });
+    }
+
+    // Create user profile in our users table
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        email,
+        name,
+        phone,
+        user_type
+      })
+      .select('id, email, name, user_type, department_id, phone, address')
+      .single();
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      return res.status(500).json({ error: 'Failed to create user profile' });
+    }
+
+    return res.status(201).json({
+      user: userProfile,
+      message: 'User created successfully. Please check your email for verification.'
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 

@@ -1,13 +1,14 @@
 import { createServer } from 'http';
 import app from './app.js';
 import { env } from './config/env.js';
-import { ensureDefaultUsers } from './startup/seed.js';
+import { seedDatabase } from './startup/seed.js';
 import openapiSpec from './docs/openapi.js';
 
 async function bootstrap() {
   const port = env.PORT;
 
-  await ensureDefaultUsers();
+  // Seed database with initial data
+  await seedDatabase();
 
   const server = createServer(app);
 
