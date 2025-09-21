@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jan_mitra/core/utils/constants.dart';
-import 'package:jan_mitra/core/ui/professional_app_bar.dart';
 import 'package:jan_mitra/modules/citizen/controllers/dynamic_issue_controller.dart';
 import 'package:jan_mitra/core/ui/app_loading.dart';
-import 'package:jan_mitra/core/ui/empty_state.dart';
-import 'package:jan_mitra/core/ui/loading_indicator.dart';
 import 'package:jan_mitra/data/models/issue_model.dart';
 import 'package:jan_mitra/routes/app_routes.dart';
 import 'package:jan_mitra/data/services/firebase_auth_service.dart';
@@ -42,7 +38,6 @@ class MyIssuesView extends StatelessWidget {
       backgroundColor: const Color(
         0xFF2C2C2E,
       ), // Dark gray background like in image
-      appBar: const IssueFeedAppBar(title: 'My Issues', showBackButton: true),
       body: Obx(() {
         if (controller.isLoading.value) {
           return const AppLoading(
@@ -94,6 +89,59 @@ class MyIssuesView extends StatelessWidget {
     );
   }
 
+  // Helper method to determine issue type based on title/description
+  String _getIssueType(String title, String description) {
+    final text = (title + ' ' + description).toLowerCase();
+
+    if (text.contains('light') ||
+        text.contains('electricity') ||
+        text.contains('power')) {
+      return 'Electrical';
+    } else if (text.contains('road') ||
+        text.contains('pothole') ||
+        text.contains('highway')) {
+      return 'Road';
+    } else if (text.contains('garbage') ||
+        text.contains('waste') ||
+        text.contains('trash')) {
+      return 'Sanitation';
+    } else if (text.contains('water') ||
+        text.contains('supply') ||
+        text.contains('pipe')) {
+      return 'Water';
+    } else if (text.contains('sewage') ||
+        text.contains('drainage') ||
+        text.contains('drain')) {
+      return 'Drainage';
+    } else if (text.contains('park') ||
+        text.contains('garden') ||
+        text.contains('tree')) {
+      return 'Environment';
+    } else {
+      return 'General';
+    }
+  }
+
+  // Helper method to get color for issue type
+  Color _getIssueTypeColor(String issueType) {
+    switch (issueType) {
+      case 'Electrical':
+        return const Color(0xFFFF9800); // Orange
+      case 'Road':
+        return const Color(0xFF2196F3); // Blue
+      case 'Sanitation':
+        return const Color(0xFF4CAF50); // Green
+      case 'Water':
+        return const Color(0xFF00BCD4); // Cyan
+      case 'Drainage':
+        return const Color(0xFF9C27B0); // Purple
+      case 'Environment':
+        return const Color(0xFF8BC34A); // Light Green
+      default:
+        return const Color(0xFF757575); // Grey
+    }
+  }
+
   Widget _buildIssueCard(
     BuildContext context,
     IssueModel issue,
@@ -128,6 +176,10 @@ class MyIssuesView extends StatelessWidget {
         statusColor = Colors.grey;
         statusText = issue.status;
     }
+
+    // Get issue type based on title/description
+    String issueType = _getIssueType(issue.title, issue.description);
+    Color typeColor = _getIssueTypeColor(issueType);
 
     // User data
     final userName = issue
@@ -285,6 +337,28 @@ class MyIssuesView extends StatelessWidget {
                 ),
 
                 const Spacer(),
+
+                // Issue type badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.1),
+                    border: Border.all(color: typeColor, width: 1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    issueType,
+                    style: TextStyle(
+                      color: typeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
 
                 // Status badge
                 Container(
