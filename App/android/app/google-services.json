@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "193972543298",
+    "project_id": "janmitra-41b00",
+    "storage_bucket": "janmitra-41b00.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193972543298:android:996bd43fe55efc4630b2db",
+        "android_client_info": {
+          "package_name": "com.example.jan_mitra"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "193972543298-kt4g66imdhcpesquoroufu79dgdv9ng4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpRHKNSi-CJ3lXezgZpuQOT66l5MGU2YU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "193972543298-kt4g66imdhcpesquoroufu79dgdv9ng4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
