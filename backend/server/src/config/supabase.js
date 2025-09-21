@@ -1,20 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
-import { env } from './env.js';
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-// Client for user authentication (uses anon key)
-export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+// Client for regular operations
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Admin client for service role operations
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
-    persistSession: false,
     autoRefreshToken: false,
-  },
+    persistSession: false
+  }
 });
 
-// Admin client for server-side operations (uses service role key)
-export const supabaseAdmin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
-
-
+module.exports = {
+  supabase,
+  supabaseAdmin
+};

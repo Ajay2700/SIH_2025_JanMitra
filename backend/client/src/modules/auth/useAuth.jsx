@@ -1,9 +1,20 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react'
+import { getApiUrl } from '../../config/api.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-	const [token, setToken] = useState(() => localStorage.getItem('token') || '')
+	const [token, setToken] = useState(() => {
+		const storedToken = localStorage.getItem('token') || ''
+		// Basic JWT format validation
+		if (storedToken && !storedToken.includes('.')) {
+			console.warn('Invalid token format detected, clearing...')
+			localStorage.removeItem('token')
+			localStorage.removeItem('user')
+			return ''
+		}
+		return storedToken
+	})
 	const [user, setUser] = useState(() => {
 		try { return JSON.parse(localStorage.getItem('user') || 'null') } catch { return null }
 	})
@@ -29,17 +40,42 @@ export function useAuth() {
 export function apiFetch(path, { method = 'GET', body, token } = {}) {
 	const headers = { 'Content-Type': 'application/json' }
 	if (token) headers['Authorization'] = `Bearer ${token}`
-	return fetch(import.meta.env.VITE_API_BASE + path, {
+	
+	return fetch(getApiUrl(path), {
 		method,
 		headers,
 		body: body ? JSON.stringify(body) : undefined,
-	}).then(async (res) => {
-		if (!res.ok) {
-			let err
-			try { err = await res.json() } catch { err = { error: res.statusText } }
-			throw new Error(err.error || 'Request failed')
+            }).then(async (res) => {
+                if (!res.ok) {
+                    let err
+                    try { 
+                        err = await res.json() 
+                    } catch { 
+                        err = { error: res.statusText || `HTTP ${res.status}` } 
+                    }
+                    console.error('API Error:', path, err)
+                    
+                    // If token is invalid, clear it automatically
+                    if (res.status === 401 && token) {
+                        console.warn('Token invalid, clearing authentication...')
+                        localStorage.removeItem('token')
+                        localStorage.removeItem('user')
+                        // Redirect to login if we're not already there
+                        if (window.location.pathname !== '/login') {
+                            window.location.href = '/login'
+                        }
+                    }
+                    
+                    throw new Error(err.error || err.message || `Request failed with status ${res.status}`)
+                }
+		try { 
+			return await res.json() 
+		} catch { 
+			return null 
 		}
-		try { return await res.json() } catch { return null }
+	}).catch(error => {
+		console.error('API Fetch Error:', path, error)
+		throw error
 	})
 }
 

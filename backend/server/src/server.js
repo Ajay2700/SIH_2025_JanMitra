@@ -1,30 +1,46 @@
-import { createServer } from 'http';
-import app from './app.js';
-import { env } from './config/env.js';
-import { seedDatabase } from './startup/seed.js';
-import openapiSpec from './docs/openapi.js';
+const app = require('./app');
+const config = require('./config/env');
 
-async function bootstrap() {
-  const port = env.PORT;
+// Start server
+const PORT = config.port;
 
-  // Seed database with initial data
-  await seedDatabase();
+const server = app.listen(PORT, () => {
+  console.log(`
+🚀 JanMitra Server is running!
+📡 Port: ${PORT}
+🌍 Environment: ${config.nodeEnv}
+📚 API Documentation: http://localhost:${PORT}/api/docs
+❤️  Health Check: http://localhost:${PORT}/api/health
+  `);
+});
 
-  const server = createServer(app);
-
-  app.get('/docs', (_req, res) => {
-    res.json(openapiSpec);
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
   });
+});
 
-  server.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`);
-    console.log(`OpenAPI docs available at http://localhost:${port}/docs`);
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
   });
-}
+});
 
-bootstrap().catch((err) => {
-  console.error('Failed to bootstrap server', err);
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
   process.exit(1);
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  process.exit(1);
+});
 
+module.exports = server;

@@ -1,46 +1,14 @@
-import dotenv from 'dotenv';
-dotenv.config();
+require('dotenv').config();
 
-function getEnv(name, fallback) {
-  const value = process.env[name] ?? fallback;
-  if (value === undefined) {
-    throw new Error(`Missing env var: ${name}`);
-  }
-  return value;
-}
-
-export const env = {
-  PORT: Number(getEnv('PORT', '4000')),
-  NODE_ENV: getEnv('NODE_ENV', 'development'),
-  SUPABASE_URL: getEnv('SUPABASE_URL'),
-  SUPABASE_ANON_KEY: getEnv('SUPABASE_ANON_KEY'),
-  SUPABASE_SERVICE_ROLE_KEY: getEnv('SUPABASE_SERVICE_ROLE_KEY'),
-  DEFAULT_USERS: {
-    citizen: {
-      email: getEnv('CITIZEN_EMAIL'),
-      password: getEnv('CITIZEN_PASSWORD'),
-      name: getEnv('CITIZEN_FULL_NAME', 'Citizen'),
-      phone: getEnv('CITIZEN_PHONE', ''),
-      address: getEnv('CITIZEN_ADDRESS', ''),
-      user_type: 'citizen',
-    },
-    staff: {
-      email: getEnv('STAFF_EMAIL'),
-      password: getEnv('STAFF_PASSWORD'),
-      name: getEnv('STAFF_FULL_NAME', 'Staff'),
-      phone: getEnv('STAFF_PHONE', ''),
-      address: getEnv('STAFF_ADDRESS', ''),
-      user_type: 'staff',
-    },
-    admin: {
-      email: getEnv('ADMIN_EMAIL'),
-      password: getEnv('ADMIN_PASSWORD'),
-      name: getEnv('ADMIN_FULL_NAME', 'Admin'),
-      phone: getEnv('ADMIN_PHONE', ''),
-      address: getEnv('ADMIN_ADDRESS', ''),
-      user_type: 'admin',
-    },
-  },
+const config = {
+  port: process.env.PORT || 3001,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  jwtSecret: process.env.JWT_SECRET || 'your_jwt_secret_here',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760, // 10MB
+  uploadPath: process.env.UPLOAD_PATH || './uploads',
+  rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000, // 15 minutes
+  rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100
 };
 
-
+module.exports = config;

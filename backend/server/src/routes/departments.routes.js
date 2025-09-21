@@ -1,15 +1,21 @@
-import { Router } from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import { listDepartments, getDepartment, getDepartmentStaff, getDepartmentTickets } from '../controllers/departments.controller.js';
+const express = require('express');
+const router = express.Router();
+const departmentsController = require('../controllers/departments.controller');
+const { validate, schemas } = require('../middleware/validation');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-const router = Router();
+// All routes require authentication
+router.use(authenticateToken);
 
-// Public routes (no auth required for listing departments)
-router.get('/', listDepartments);
-router.get('/:id', getDepartment);
-router.get('/:id/staff', getDepartmentStaff);
+// Public routes (for authenticated users)
+router.get('/', departmentsController.getAllDepartments);
+router.get('/hierarchy', departmentsController.getDepartmentHierarchy);
+router.get('/:id', departmentsController.getDepartmentById);
+router.get('/:id/stats', departmentsController.getDepartmentStats);
 
-// Staff and admin routes
-router.get('/:id/tickets', requireAuth(['staff', 'admin']), getDepartmentTickets);
+// Admin only routes
+router.post('/', requireAdmin, validate(schemas.department.create), departmentsController.createDepartment);
+router.put('/:id', requireAdmin, validate(schemas.department.update), departmentsController.updateDepartment);
+router.delete('/:id', requireAdmin, departmentsController.deleteDepartment);
 
-export default router;
+module.exports = router;

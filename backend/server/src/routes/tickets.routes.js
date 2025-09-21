@@ -1,16 +1,23 @@
-import { Router } from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import { createTicket, listMyTickets, getTicket, deleteTicket, listTicketComments, addTicketComment } from '../controllers/tickets.controller.js';
+const express = require('express');
+const router = express.Router();
+const ticketsController = require('../controllers/tickets.controller');
+const { validate, schemas } = require('../middleware/validation');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-const router = Router();
+// All routes require authentication
+router.use(authenticateToken);
 
-router.post('/', requireAuth(['citizen','staff','admin']), createTicket);
-router.get('/', requireAuth(['citizen','staff','admin']), listMyTickets);
-router.get('/:id', requireAuth(['citizen','staff','admin']), getTicket);
-router.delete('/:id', requireAuth(['citizen','staff','admin']), deleteTicket);
-router.get('/:id/comments', requireAuth(['citizen','staff','admin']), listTicketComments);
-router.post('/:id/comments', requireAuth(['citizen','staff','admin']), addTicketComment);
+// Public routes (for authenticated users)
+router.get('/', ticketsController.getAllTickets);
+router.get('/stats', ticketsController.getTicketStats);
+router.get('/department/:department_id', ticketsController.getTicketsByDepartment);
+router.get('/assigned/:user_id', ticketsController.getTicketsByAssignedUser);
+router.get('/:id', ticketsController.getTicketById);
+router.get('/:id/history', ticketsController.getTicketHistory);
 
-export default router;
+// Staff and admin routes
+router.post('/', validate(schemas.ticket.create), ticketsController.createTicket);
+router.put('/:id', validate(schemas.ticket.update), ticketsController.updateTicket);
+router.delete('/:id', requireAdmin, ticketsController.deleteTicket);
 
-
+module.exports = router;

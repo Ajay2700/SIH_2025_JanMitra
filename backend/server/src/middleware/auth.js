@@ -1,55 +1,132 @@
-import { supabase } from '../config/supabase.js';
+const jwt = require('jsonwebtoken');
+const { supabase } = require('../config/supabase');
+const config = require('../config/env');
+const { USER_ROLE } = require('../models/types');
 
-export function requireAuth(roles = []) {
-  return async (req, res, next) => {
-    try {
-      const header = req.headers.authorization || '';
-      const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-      
-      if (!token) {
-        return res.status(401).json({ error: 'Unauthorized - No token provided' });
-      }
+// Middleware to verify JWT token
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-      // Verify the JWT token with Supabase
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      
-      if (error || !user) {
-        return res.status(401).json({ error: 'Unauthorized - Invalid token' });
-      }
-
-      // Get user profile from our users table
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('id, email, name, user_type, department_id, phone, address')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        return res.status(401).json({ error: 'Unauthorized - User profile not found' });
-      }
-
-      // Set user data in request
-      req.user = {
-        id: userProfile.id,
-        email: userProfile.email,
-        name: userProfile.name,
-        user_type: userProfile.user_type,
-        department_id: userProfile.department_id,
-        phone: userProfile.phone,
-        address: userProfile.address
-      };
-
-      // Check role-based access
-      if (roles.length > 0 && !roles.includes(userProfile.user_type)) {
-        return res.status(403).json({ error: 'Forbidden - Insufficient permissions' });
-      }
-
-      next();
-    } catch (err) {
-      console.error('Auth middleware error:', err);
-      return res.status(401).json({ error: 'Unauthorized - Token verification failed' });
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Access token required' 
+      });
     }
+
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret);
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError.message);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid or expired token. Please login again.' 
+      });
+    }
+
+    // Get user details from database
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.userId)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    req.user = userData;
+    req.token = token;
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token' 
+      });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token expired' 
+      });
+    }
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Authentication error' 
+    });
+  }
+};
+
+// Middleware to check user role
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+    }
+
+    const userRole = req.user.role;
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Insufficient permissions' 
+      });
+    }
+
+    next();
   };
-}
+};
 
+// Middleware to check if user is admin or super admin
+const requireAdmin = requireRole([USER_ROLE.ADMIN, USER_ROLE.SUPER_ADMIN]);
 
+// Middleware to check if user is super admin only
+const requireSuperAdmin = requireRole(USER_ROLE.SUPER_ADMIN);
+
+// Middleware to check if user can access resource (owner or admin)
+const requireOwnershipOrAdmin = (resourceUserIdField = 'user_id') => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+    }
+
+    const userRole = req.user.role;
+    const userId = req.user.id;
+    const resourceUserId = req.params[resourceUserIdField] || req.body[resourceUserIdField];
+
+    // Allow if user is admin/super admin or owns the resource
+    if ([USER_ROLE.ADMIN, USER_ROLE.SUPER_ADMIN].includes(userRole) || 
+        userId === resourceUserId) {
+      return next();
+    }
+
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Access denied' 
+    });
+  };
+};
+
+module.exports = {
+  authenticateToken,
+  requireRole,
+  requireAdmin,
+  requireSuperAdmin,
+  requireOwnershipOrAdmin
+};
