@@ -6,6 +6,8 @@ import 'package:jan_mitra/data/models/issue_model.dart';
 import 'package:jan_mitra/routes/app_routes.dart';
 import 'package:jan_mitra/data/services/firebase_auth_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui';
+import 'package:flutter/services.dart';
 
 class MyIssuesView extends StatelessWidget {
   const MyIssuesView({super.key});
@@ -35,14 +37,14 @@ class MyIssuesView extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(
-        0xFF2C2C2E,
-      ), // Dark gray background like in image
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const AppLoading(
-            message: 'Loading your issues...',
-            type: AppLoadingType.bounce,
+          return const Center(
+            child: AppLoading(
+              message: 'Loading your issues...',
+              type: AppLoadingType.bounce,
+            ),
           );
         }
 
@@ -56,24 +58,92 @@ class MyIssuesView extends StatelessWidget {
 
         return controller.userIssues.isEmpty
             ? _buildEmptyState(context)
-            : RefreshIndicator(
-                onRefresh: controller.refreshData,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: controller.userIssues.map((issue) {
-                      return _buildIssueCard(context, issue, controller);
-                    }).toList(),
-                  ),
-                ),
-              );
+            : _buildIssuesList(context, controller);
       }),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed(Routes.REPORT_ISSUE),
-        icon: const Icon(Icons.edit),
-        label: const Text('Post Issue'),
-        backgroundColor: const Color(0xFF007AFF),
+      floatingActionButton: _buildFloatingActionButton(context),
+    );
+  }
+
+  Widget _buildIssuesList(
+    BuildContext context,
+    DynamicIssueController controller,
+  ) {
+    return RefreshIndicator(
+      onRefresh: controller.refreshData,
+      color: Theme.of(context).primaryColor,
+      backgroundColor: Theme.of(context).cardColor,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Header with title and refresh button
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            elevation: 0,
+            title: Text(
+              'My Issues',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).textTheme.headlineSmall?.color,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  controller.refreshData();
+                },
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final issue = controller.userIssues[index];
+                return _buildIssueCard(context, issue, controller);
+              }, childCount: controller.userIssues.length),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          Get.toNamed(Routes.REPORT_ISSUE);
+        },
+        icon: const Icon(Icons.add_rounded, size: 24),
+        label: const Text(
+          'Report Issue',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            letterSpacing: 0.5,
+          ),
+        ),
+        backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       ),
     );
   }
@@ -123,22 +193,39 @@ class MyIssuesView extends StatelessWidget {
   }
 
   // Helper method to get color for issue type
-  Color _getIssueTypeColor(String issueType) {
+  Color _getIssueTypeColor(String issueType, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     switch (issueType) {
       case 'Electrical':
-        return const Color(0xFFFF9800); // Orange
+        return isDark
+            ? const Color(0xFFFFB74D)
+            : const Color(0xFFFF9800); // Orange
       case 'Road':
-        return const Color(0xFF2196F3); // Blue
+        return isDark
+            ? const Color(0xFF64B5F6)
+            : const Color(0xFF2196F3); // Blue
       case 'Sanitation':
-        return const Color(0xFF4CAF50); // Green
+        return isDark
+            ? const Color(0xFF81C784)
+            : const Color(0xFF4CAF50); // Green
       case 'Water':
-        return const Color(0xFF00BCD4); // Cyan
+        return isDark
+            ? const Color(0xFF4DD0E1)
+            : const Color(0xFF00BCD4); // Cyan
       case 'Drainage':
-        return const Color(0xFF9C27B0); // Purple
+        return isDark
+            ? const Color(0xFFBA68C8)
+            : const Color(0xFF9C27B0); // Purple
       case 'Environment':
-        return const Color(0xFF8BC34A); // Light Green
+        return isDark
+            ? const Color(0xFFAED581)
+            : const Color(0xFF8BC34A); // Light Green
       default:
-        return const Color(0xFF757575); // Grey
+        return isDark
+            ? const Color(0xFFB0BEC5)
+            : const Color(0xFF757575); // Grey
     }
   }
 
@@ -147,236 +234,422 @@ class MyIssuesView extends StatelessWidget {
     IssueModel issue,
     DynamicIssueController controller,
   ) {
-    // Get status color and text - service maps ticket statuses to issue statuses
-    Color statusColor;
-    String statusText;
-
-    switch (issue.status) {
-      case 'submitted': // Maps to 'open' in tickets
-        statusColor = const Color(0xFFE91E63); // Pink for Pending
-        statusText = 'Pending';
-        break;
-      case 'acknowledged': // Maps to 'pending' in tickets
-        statusColor = const Color(0xFFFFA726); // Orange for Confirmed
-        statusText = 'Confirmed';
-        break;
-      case 'in_progress': // Maps to 'in_progress' in tickets
-        statusColor = const Color(0xFF42A5F5); // Blue for In Progress
-        statusText = 'In Progress';
-        break;
-      case 'resolved': // Maps to 'resolved'/'closed' in tickets
-        statusColor = const Color(0xFF66BB6A); // Green for Resolved
-        statusText = 'Resolved';
-        break;
-      case 'rejected': // Maps to 'rejected' in tickets
-        statusColor = const Color(0xFFEF5350); // Red for Rejected
-        statusText = 'Rejected';
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusText = issue.status;
-    }
-
-    // Get issue type based on title/description
-    String issueType = _getIssueType(issue.title, issue.description);
-    Color typeColor = _getIssueTypeColor(issueType);
-
-    // User data
-    final userName = issue
-        .createdBy; // This will be the user ID, you might want to fetch user name
+    // Get status color and text
+    final statusData = _getStatusData(issue.status);
+    final issueType = _getIssueType(issue.title, issue.description);
+    final typeColor = _getIssueTypeColor(issueType, context);
+    final userName = issue.createdBy.isNotEmpty ? issue.createdBy : 'Anonymous';
     final location = issue.address.isNotEmpty
         ? issue.address
         : 'Unknown Location';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Material(
+        elevation: 8,
+        shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).cardColor,
+                Theme.of(context).cardColor.withValues(alpha: 0.9),
+              ],
+            ),
+            border: Border.all(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              width: 1,
+            ),
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Section
+              _buildCardHeader(context, userName, location, issue.createdAt),
+
+              // Image Section
+              if (issue.imageUrl.isNotEmpty)
+                _buildImageSection(context, issue.imageUrl),
+
+              // Content Section
+              _buildContentSection(context, issue),
+
+              // Actions Section
+              _buildActionsSection(
+                context,
+                issue,
+                controller,
+                statusData,
+                typeColor,
+                issueType,
+              ),
+            ],
+          ),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Map<String, dynamic> _getStatusData(String status) {
+    switch (status) {
+      case 'submitted':
+        return {
+          'color': const Color(0xFFF59E0B),
+          'text': 'Pending',
+          'icon': Icons.schedule_rounded,
+        };
+      case 'acknowledged':
+        return {
+          'color': const Color(0xFF3B82F6),
+          'text': 'Confirmed',
+          'icon': Icons.check_circle_outline_rounded,
+        };
+      case 'in_progress':
+        return {
+          'color': const Color(0xFF8B5CF6),
+          'text': 'In Progress',
+          'icon': Icons.work_outline_rounded,
+        };
+      case 'resolved':
+        return {
+          'color': const Color(0xFF10B981),
+          'text': 'Resolved',
+          'icon': Icons.check_circle_rounded,
+        };
+      case 'rejected':
+        return {
+          'color': const Color(0xFFEF4444),
+          'text': 'Rejected',
+          'icon': Icons.cancel_rounded,
+        };
+      default:
+        return {
+          'color': Colors.grey,
+          'text': status,
+          'icon': Icons.help_outline_rounded,
+        };
+    }
+  }
+
+  Widget _buildCardHeader(
+    BuildContext context,
+    String userName,
+    String location,
+    DateTime createdAt,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor.withValues(alpha: 0.05),
+            Theme.of(context).primaryColor.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
         children: [
-          // Header with user info
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
+          // Avatar
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: Theme.of(
+                context,
+              ).primaryColor.withValues(alpha: 0.1),
+              child: Text(
+                userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // User info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // User avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey[300],
-                  child: Text(
-                    userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
+                Text(
+                  userName,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // User name and location
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
                         location,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                ),
-
-                // Three dots menu
-                IconButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.grey),
-                  onPressed: () {
-                    // Show options menu
-                  },
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Issue Image
-          if (issue.imageUrl.isNotEmpty)
-            ClipRRect(
-              child: CachedNetworkImage(
-                imageUrl: issue.imageUrl,
-                height: 250,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 250,
-                  color: Colors.grey[300],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 250,
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.image_not_supported,
-                    size: 50,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ),
+          // Time ago
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-
-          // Description
-          Padding(
-            padding: const EdgeInsets.all(16.0),
             child: Text(
-              issue.description,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-                height: 1.4,
+              _getTimeAgo(createdAt),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Actions and Status
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+  Widget _buildImageSection(BuildContext context, String imageUrl) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.image_not_supported_rounded,
+                  size: 48,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Image not available',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentSection(BuildContext context, IssueModel issue) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            issue.title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+              height: 1.3,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+
+          // Description
+          Text(
+            issue.description,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionsSection(
+    BuildContext context,
+    IssueModel issue,
+    DynamicIssueController controller,
+    Map<String, dynamic> statusData,
+    Color typeColor,
+    String issueType,
+  ) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        children: [
+          // Action buttons row
+          Row(
+            children: [
+              // Like button
+              _buildActionButton(
+                context,
+                icon: controller.hasUserLiked(issue.id)
+                    ? Icons.thumb_up_rounded
+                    : Icons.thumb_up_outlined,
+                label: '${controller.getLikeCount(issue.id)}',
+                isActive: controller.hasUserLiked(issue.id),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  controller.toggleLike(issue.id);
+                },
+              ),
+              const SizedBox(width: 12),
+
+              // Share button
+              _buildActionButton(
+                context,
+                icon: Icons.share_rounded,
+                label: 'Share',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  // Share functionality
+                },
+              ),
+
+              const Spacer(),
+
+              // Issue type badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: typeColor.withValues(alpha: 0.15),
+                  border: Border.all(color: typeColor, width: 1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  issueType.toUpperCase(),
+                  style: TextStyle(
+                    color: typeColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Status section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: statusData['color'].withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: statusData['color'].withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
             child: Row(
               children: [
-                // Like button
-                GestureDetector(
-                  onTap: () => controller.toggleLike(issue.id),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        controller.hasUserLiked(issue.id)
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_up_outlined,
-                        color: controller.hasUserLiked(issue.id)
-                            ? Colors.red
-                            : Colors.grey,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${controller.getLikeCount(issue.id)}',
-                        style: TextStyle(
-                          color: controller.hasUserLiked(issue.id)
-                              ? Colors.red
-                              : Colors.grey,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                Icon(statusData['icon'], color: statusData['color'], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  statusData['text'],
+                  style: TextStyle(
+                    color: statusData['color'],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: 0.5,
                   ),
                 ),
-
-                // Share button
-                IconButton(
-                  icon: const Icon(Icons.share, color: Colors.grey, size: 20),
-                  onPressed: () {
-                    // Share functionality
-                  },
-                ),
-
                 const Spacer(),
-
-                // Issue type badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: typeColor.withValues(alpha: 0.1),
-                    border: Border.all(color: typeColor, width: 1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    issueType,
-                    style: TextStyle(
-                      color: typeColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+                Text(
+                  'Status',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -385,5 +658,74 @@ class MyIssuesView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    bool isActive = false,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive
+                ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+                : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive
+                  ? Theme.of(context).primaryColor
+                  : Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

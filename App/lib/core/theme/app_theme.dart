@@ -1,37 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
-  // Brand Colors
-  static const Color primaryColor = Color(0xFF0A6EBD);
-  static const Color secondaryColor = Color(0xFF45CFDD);
-  static const Color accentColor = Color(0xFFF0DE36);
+  // Official Government Colors
+  static const Color primaryColor = Color(
+    0xFF1E40AF,
+  ); // Deep blue - trustworthy
+  static const Color secondaryColor = Color(0xFF059669); // Professional green
+  static const Color accentColor = Color(0xFFDC2626); // Official red for alerts
 
-  // Light Theme Colors
+  // Light Theme Colors - Professional & Clean
   static const Color _lightPrimaryColor = primaryColor;
   static const Color _lightSecondaryColor = secondaryColor;
   static const Color _lightAccentColor = accentColor;
-  static const Color _lightBackgroundColor = Color(0xFFF8F9FA);
-  static const Color _lightSurfaceColor = Colors.white;
-  static const Color _lightErrorColor = Color(0xFFE53935);
-  static const Color _lightCardColor = Colors.white;
-  static const Color _lightDividerColor = Color(0xFFE0E0E0);
+  static const Color _lightBackgroundColor = Color(
+    0xFFFAFBFC,
+  ); // Clean light background
+  static const Color _lightSurfaceColor = Color(0xFFFFFFFF); // Pure white
+  static const Color _lightErrorColor = Color(0xFFDC2626); // Professional red
+  static const Color _lightCardColor = Color(0xFFFFFFFF); // Pure white cards
+  static const Color _lightDividerColor = Color(0xFFE5E7EB); // Subtle grey
 
-  // Dark Theme Colors
-  static const Color _darkPrimaryColor = Color(0xFF0D47A1);
-  static const Color _darkSecondaryColor = Color(0xFF00838F);
-  static const Color _darkAccentColor = Color(0xFFFFD54F);
-  static const Color _darkBackgroundColor = Color(0xFF121212);
-  static const Color _darkSurfaceColor = Color(0xFF1E1E1E);
-  static const Color _darkErrorColor = Color(0xFFEF5350);
-  static const Color _darkCardColor = Color(0xFF2C2C2C);
-  static const Color _darkDividerColor = Color(0xFF424242);
+  // Dark Theme Colors - Professional & Modern
+  static const Color _darkPrimaryColor = Color(
+    0xFF3B82F6,
+  ); // Lighter blue for dark mode
+  static const Color _darkSecondaryColor = Color(
+    0xFF10B981,
+  ); // Lighter green for dark mode
+  static const Color _darkAccentColor = Color(
+    0xFFEF4444,
+  ); // Lighter red for dark mode
+  static const Color _darkBackgroundColor = Color(
+    0xFF0F172A,
+  ); // Professional dark background
+  static const Color _darkSurfaceColor = Color(
+    0xFF1E293B,
+  ); // Professional dark surface
+  static const Color _darkErrorColor = Color(0xFFEF4444); // Professional red
+  static const Color _darkCardColor = Color(
+    0xFF1E293B,
+  ); // Professional dark cards
+  static const Color _darkDividerColor = Color(
+    0xFF334155,
+  ); // Professional dark divider
 
-  // Status Colors
-  static const Color submittedColor = Color(0xFFFFA000);
-  static const Color acknowledgedColor = Color(0xFF42A5F5);
-  static const Color inProgressColor = Color(0xFF7E57C2);
-  static const Color resolvedColor = Color(0xFF66BB6A);
-  static const Color rejectedColor = Color(0xFFEF5350);
+  // Professional Status Colors
+  static const Color submittedColor = Color(0xFFF59E0B); // Professional amber
+  static const Color acknowledgedColor = Color(0xFF3B82F6); // Professional blue
+  static const Color inProgressColor = Color(0xFF8B5CF6); // Professional purple
+  static const Color resolvedColor = Color(0xFF10B981); // Professional green
+  static const Color rejectedColor = Color(0xFFEF4444); // Professional red
 
   // Priority Colors
   static const Color lowPriorityColor = Color(0xFF66BB6A);
@@ -105,6 +124,7 @@ class AppTheme {
     primaryColor: _lightPrimaryColor,
     scaffoldBackgroundColor: _lightBackgroundColor,
     fontFamily: fontFamily,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
 
     // AppBar Theme
     appBarTheme: AppBarTheme(
@@ -115,8 +135,11 @@ class AppTheme {
       titleTextStyle: _lightHeadingTextStyle.copyWith(
         fontSize: 20,
         color: white,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
       ),
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      shadowColor: _lightPrimaryColor.withValues(alpha: 0.3),
     ),
 
     // Color Scheme
@@ -172,16 +195,17 @@ class AppTheme {
       labelSmall: _lightCaptionTextStyle.copyWith(fontSize: 11, height: 1.4),
     ),
 
-    // Button Themes
+    // Button Themes - Professional Government Style
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: _lightPrimaryColor,
         foregroundColor: white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        elevation: 3,
+        shadowColor: _lightPrimaryColor.withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         textStyle: _lightBodyTextStyle.copyWith(
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
@@ -246,14 +270,16 @@ class AppTheme {
       ),
     ),
 
-    // Card settings
+    // Card settings - Professional Government Style
     cardColor: _lightCardColor,
 
-    // Divider Theme
+    // Divider Theme - Professional
     dividerTheme: DividerThemeData(
       color: _lightDividerColor,
-      thickness: 1,
-      space: 24,
+      thickness: 1.5,
+      space: 32,
+      indent: 16,
+      endIndent: 16,
     ),
 
     // Chip Theme
@@ -277,6 +303,7 @@ class AppTheme {
     primaryColor: _darkPrimaryColor,
     scaffoldBackgroundColor: _darkBackgroundColor,
     fontFamily: fontFamily,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
 
     // AppBar Theme
     appBarTheme: AppBarTheme(
@@ -287,8 +314,11 @@ class AppTheme {
       titleTextStyle: _darkHeadingTextStyle.copyWith(
         fontSize: 20,
         color: white,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
       ),
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      shadowColor: _darkPrimaryColor.withValues(alpha: 0.3),
     ),
 
     // Color Scheme
@@ -341,16 +371,17 @@ class AppTheme {
       labelSmall: _darkCaptionTextStyle.copyWith(fontSize: 11, height: 1.4),
     ),
 
-    // Button Themes
+    // Button Themes - Professional Government Style
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: _darkPrimaryColor,
         foregroundColor: white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        elevation: 6,
+        shadowColor: _darkPrimaryColor.withValues(alpha: 0.4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         textStyle: _darkBodyTextStyle.copyWith(
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
           color: white,
@@ -416,14 +447,16 @@ class AppTheme {
       ),
     ),
 
-    // Card settings
+    // Card settings - Professional Government Style
     cardColor: _darkCardColor,
 
-    // Divider Theme
+    // Divider Theme - Professional
     dividerTheme: DividerThemeData(
       color: _darkDividerColor,
-      thickness: 1,
-      space: 24,
+      thickness: 1.5,
+      space: 32,
+      indent: 16,
+      endIndent: 16,
     ),
 
     // Chip Theme

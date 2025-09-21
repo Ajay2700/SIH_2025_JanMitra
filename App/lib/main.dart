@@ -116,7 +116,7 @@ class JanMitraApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light, // Default theme mode
+      themeMode: ThemeMode.system, // Follow system theme preference
       initialRoute: Routes.SPLASH,
       getPages: AppPages.routes,
       defaultTransition: Transition.fadeIn,
