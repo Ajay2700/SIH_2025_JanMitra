@@ -21,7 +21,7 @@ class _ServicesHomeViewState extends State<ServicesHomeView> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if Firebase is available and authentication is required
+    // Require Firebase authentication - no demo mode
     bool firebaseInitialized = false;
     try {
       firebaseInitialized = Get.find<bool>(tag: 'firebaseInitialized') ?? false;
@@ -30,22 +30,27 @@ class _ServicesHomeViewState extends State<ServicesHomeView> {
       firebaseInitialized = false;
     }
 
-    if (firebaseInitialized) {
-      final authService = Get.find<FirebaseAuthService>();
-      if (!authService.isAuthenticated.value ||
-          authService.getCurrentUser() == null) {
-        // Redirect to login if Firebase is available but user is not authenticated
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.offAllNamed(Routes.LOGIN);
-        });
-        return const Scaffold(
-          body: Center(
-            child: AppLoading(message: 'Checking authentication...'),
-          ),
-        );
-      }
+    // Always require authentication - redirect to login if not authenticated
+    if (!firebaseInitialized) {
+      // Firebase not initialized, show loading
+      return const Scaffold(
+        body: Center(
+          child: AppLoading(message: 'Initializing authentication...'),
+        ),
+      );
     }
-    // If Firebase is not available, allow the app to work without authentication
+
+    final authService = Get.find<FirebaseAuthService>();
+    if (!authService.isAuthenticated.value ||
+        authService.getCurrentUser() == null) {
+      // User not authenticated, redirect to login
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.offAllNamed(Routes.LOGIN);
+      });
+      return const Scaffold(
+        body: Center(child: AppLoading(message: 'Redirecting to login...')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -110,29 +115,10 @@ class _ServicesHomeViewState extends State<ServicesHomeView> {
       case 1:
         return MyIssuesView();
       case 2:
-        try {
-          bool firebaseInitialized = false;
-          try {
-            firebaseInitialized =
-                Get.find<bool>(tag: 'firebaseInitialized') ?? false;
-          } catch (e) {
-            // Firebase initialization status not available yet, assume false
-            firebaseInitialized = false;
-          }
-
-          if (firebaseInitialized) {
-            final authService = Get.find<FirebaseAuthService>();
-            final currentUser = authService.getCurrentUser();
-            if (currentUser != null) {
-              return UserProfileView(user: currentUser);
-            }
-          }
-
-          // If Firebase is not available or user is not authenticated, show demo profile
-          return _buildDemoProfile(context);
-        } catch (e) {
-          return _buildErrorView(context, 'Unable to access profile: $e');
-        }
+        // Show authenticated user's profile (authentication is already verified above)
+        final authService = Get.find<FirebaseAuthService>();
+        final currentUser = authService.getCurrentUser()!;
+        return UserProfileView(user: currentUser);
       default:
         return _buildServicesContent(context);
     }
@@ -221,23 +207,6 @@ class _ServicesHomeViewState extends State<ServicesHomeView> {
       icon: Icons.person_outline_rounded,
       actionText: 'Go to Login',
       onAction: () => Get.toNamed(Routes.LOGIN),
-    );
-  }
-
-  Widget _buildDemoProfile(BuildContext context) {
-    return AppEmptyWidget(
-      title: 'Demo Mode',
-      message:
-          'Authentication is not available. You can still report issues and view them.',
-      icon: Icons.info_outline_rounded,
-      actionText: 'Continue',
-      onAction: () => Get.snackbar(
-        'Demo Mode',
-        'You are using the app in demo mode without authentication',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: AppTheme.primaryColor,
-        colorText: Colors.white,
-      ),
     );
   }
 

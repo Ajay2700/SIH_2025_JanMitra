@@ -96,21 +96,38 @@ class UserProfileView extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+          SizedBox(height: 4),
+          // Welcome message
+          Text(
+            'Welcome to Jan Mitra',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
           SizedBox(height: 8),
 
-          // User Type Badge
+          // Authentication Badge
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              _getUserTypeLabel(user.userType),
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_user, size: 16, color: Colors.white),
+                SizedBox(width: 6),
+                Text(
+                  'Google Verified',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -186,14 +203,20 @@ class UserProfileView extends StatelessWidget {
           SizedBox(height: 16),
           _buildDetailRow('User ID', user.id, Icons.fingerprint),
           _buildDetailRow(
+            'Authentication Provider',
+            'Google Sign-In',
+            Icons.account_circle,
+            Colors.blue,
+          ),
+          _buildDetailRow(
             'Account Created',
             _formatDate(user.createdAt),
             Icons.calendar_today,
           ),
           _buildDetailRow(
-            'Last Updated',
+            'Last Sign In',
             _formatDate(user.updatedAt ?? user.createdAt),
-            Icons.update,
+            Icons.login,
           ),
           _buildDetailRow(
             'Account Status',
@@ -299,16 +322,8 @@ class UserProfileView extends StatelessWidget {
   }
 
   String _getUserTypeLabel(String userType) {
-    switch (userType.toLowerCase()) {
-      case 'admin':
-        return 'Government Official';
-      case 'citizen':
-        return 'Citizen';
-      case 'worker':
-        return 'Municipal Worker';
-      default:
-        return userType;
-    }
+    // Since we now require Google authentication, all users are citizens
+    return 'Verified Citizen';
   }
 
   String _formatDate(DateTime date) {

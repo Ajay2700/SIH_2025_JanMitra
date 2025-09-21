@@ -26,11 +26,13 @@ class _SplashViewState extends State<SplashView> {
       print('Splash screen initializing...');
       loadingText.value = 'Initializing services...';
 
-      // Wait for services to initialize - check if firebaseInitialized flag is available
+      // Wait for services to initialize with timeout - check if firebaseInitialized flag is available
       int attempts = 0;
       bool firebaseInitialized = false;
-      while (attempts < 20) {
-        // Wait up to 4 seconds
+      bool timeoutReached = false;
+
+      while (attempts < 30 && !timeoutReached) {
+        // Wait up to 6 seconds
         try {
           firebaseInitialized =
               Get.find<bool>(tag: 'firebaseInitialized') ?? false;
@@ -39,6 +41,14 @@ class _SplashViewState extends State<SplashView> {
           // Flag not available yet, wait and try again
           await Future.delayed(Duration(milliseconds: 200));
           attempts++;
+
+          // Check for timeout after 3 seconds (15 attempts)
+          if (attempts >= 15) {
+            timeoutReached = true;
+            print(
+              'Firebase initialization timeout reached, proceeding without Firebase...',
+            );
+          }
         }
       }
 
@@ -47,16 +57,16 @@ class _SplashViewState extends State<SplashView> {
       if (firebaseInitialized && Get.isRegistered<FirebaseAuthService>()) {
         final authService = Get.find<FirebaseAuthService>();
 
-        // Wait for auth state to be determined
-        int attempts = 0;
-        while (attempts < 10) {
-          // Wait up to 2 seconds
+        // Wait for auth state to be determined with timeout
+        int authAttempts = 0;
+        while (authAttempts < 15) {
+          // Wait up to 3 seconds
           if (authService.currentUser.value != null ||
               !authService.isLoading.value) {
             break;
           }
           await Future.delayed(Duration(milliseconds: 200));
-          attempts++;
+          authAttempts++;
         }
 
         if (authService.isAuthenticated.value &&
@@ -72,8 +82,10 @@ class _SplashViewState extends State<SplashView> {
           Get.offAllNamed(Routes.AUTH);
         }
       } else {
-        // Firebase not available, skip authentication and go to services
-        print('Firebase not available, skipping auth and going to services...');
+        // Firebase not available or timeout reached, skip authentication and go to services
+        print(
+          'Firebase not available or timeout reached, proceeding to services...',
+        );
         loadingText.value = 'Loading services...';
         await Future.delayed(Duration(milliseconds: 500));
         Get.offAllNamed(Routes.SERVICES_HOME);
@@ -81,6 +93,9 @@ class _SplashViewState extends State<SplashView> {
     } catch (e) {
       errorText.value = 'Error initializing app: $e';
       print('Splash error: $e');
+      // Even on error, try to proceed to services
+      await Future.delayed(Duration(milliseconds: 1000));
+      Get.offAllNamed(Routes.SERVICES_HOME);
     }
   }
 

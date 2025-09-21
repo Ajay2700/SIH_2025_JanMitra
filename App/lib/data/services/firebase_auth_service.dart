@@ -7,7 +7,7 @@ import 'package:jan_mitra/data/models/user_model.dart';
 
 class FirebaseAuthService extends GetxService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  GoogleSignIn? _googleSignIn;
 
   // Observable properties
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
@@ -20,6 +20,20 @@ class FirebaseAuthService extends GetxService {
 
   Future<FirebaseAuthService> init() async {
     try {
+      // Initialize Google Sign-In with error handling
+      try {
+        _googleSignIn = GoogleSignIn();
+        // Test if Google Sign-In is properly configured
+        await _googleSignIn!.isSignedIn();
+      } catch (googleError) {
+        if (kDebugMode) {
+          print('Google Sign-In initialization failed: $googleError');
+          print('Google Sign-In will not be available');
+        }
+        // Set to null to indicate Google Sign-In is not available
+        _googleSignIn = null;
+      }
+
       // Listen to auth state changes
       _authStateSubscription = _auth.authStateChanges().listen(
         _onAuthStateChanged,
@@ -80,8 +94,29 @@ class FirebaseAuthService extends GetxService {
         print('Starting Google Sign-In process...');
       }
 
+      // Check if Google Sign-In is available
+      if (_googleSignIn == null) {
+        authError.value =
+            'Google Sign-In is not available. Please check your Firebase configuration.';
+        if (kDebugMode) {
+          print('Google Sign-In is not initialized');
+        }
+        return null;
+      }
+
+      try {
+        await _googleSignIn!.isSignedIn();
+      } catch (configError) {
+        authError.value =
+            'Google Sign-In is not properly configured. Please check your Firebase and Google Cloud Console settings.';
+        if (kDebugMode) {
+          print('Google Sign-In configuration error: $configError');
+        }
+        return null;
+      }
+
       // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
 
       if (googleUser == null) {
         // User canceled the sign-in
@@ -252,7 +287,9 @@ class FirebaseAuthService extends GetxService {
   // Sign out
   Future<void> signOut() async {
     try {
-      await _googleSignIn.signOut();
+      if (_googleSignIn != null) {
+        await _googleSignIn!.signOut();
+      }
       await _auth.signOut();
     } catch (e) {
       if (kDebugMode) {

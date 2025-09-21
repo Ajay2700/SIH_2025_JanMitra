@@ -4,7 +4,6 @@ import 'package:jan_mitra/core/services/storage_service.dart';
 import 'package:jan_mitra/data/repository/auth_repository.dart';
 import 'package:jan_mitra/data/repository/issue_repository.dart';
 import 'package:jan_mitra/data/repository/ticket_repository.dart';
-import 'package:jan_mitra/data/services/firebase_auth_service.dart';
 import 'package:jan_mitra/data/services/config_service.dart';
 import 'package:jan_mitra/data/services/issue_service.dart';
 import 'package:jan_mitra/data/services/issue_service_supabase.dart';
@@ -18,7 +17,7 @@ class InitialBinding extends Bindings {
   @override
   void dependencies() {
     // Services - Use put instead of putAsync for immediate registration
-    Get.put(FirebaseAuthService(), permanent: true);
+    // FirebaseAuthService is initialized in main.dart to handle errors gracefully
     Get.put(SupabaseService(), permanent: true);
     Get.put(IssueService(), permanent: true);
     Get.put(IssueServiceSupabase(), permanent: true);

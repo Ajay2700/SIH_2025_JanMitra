@@ -10,6 +10,7 @@ import 'package:jan_mitra/data/services/firebase_service.dart';
 import 'package:jan_mitra/data/services/firebase_auth_service.dart';
 import 'package:jan_mitra/core/config/env_config.dart';
 import 'package:jan_mitra/data/services/issue_service_supabase.dart';
+import 'package:jan_mitra/data/services/supabase_service.dart';
 
 void main() async {
   try {
@@ -42,6 +43,10 @@ Future<void> initServices() async {
     );
     print('Supabase initialized successfully');
 
+    // Put SupabaseService before dependent services
+    Get.put(SupabaseService(), permanent: true);
+    print('SupabaseService put successfully');
+
     // Initialize Firebase (optional - app should work without it)
     bool firebaseInitialized = false;
     try {
@@ -64,23 +69,31 @@ Future<void> initServices() async {
       Get.put(firebaseService);
 
       // Initialize Firebase Auth Service
-      final firebaseAuthService = FirebaseAuthService();
-      await firebaseAuthService.init();
-      Get.put(firebaseAuthService);
+      try {
+        final firebaseAuthService = FirebaseAuthService();
+        await firebaseAuthService.init();
+        Get.put(firebaseAuthService);
+      } catch (authError) {
+        print('Firebase Auth Service initialization failed: $authError');
+        // Create a fallback auth service
+        final fallbackAuthService = FirebaseAuthService();
+        fallbackAuthService.isAuthenticated.value = false;
+        fallbackAuthService.currentUser.value = null;
+        Get.put(fallbackAuthService);
+      }
     } catch (firebaseError) {
       print(
         'Firebase initialization failed (app will work with limited auth): $firebaseError',
       );
-      // Create a mock auth service for demo purposes
-      final mockAuthService = FirebaseAuthService();
-      // Set it as not authenticated by default
-      mockAuthService.isAuthenticated.value = false;
-      mockAuthService.currentUser.value = null;
-      Get.put(mockAuthService);
+      firebaseInitialized = false; // Ensure flag is set to false
     }
 
     // Initialize Issue Service (uses Supabase)
+    print(
+      'Checking SupabaseService registration before putting IssueServiceSupabase: ${Get.isRegistered<SupabaseService>()}',
+    );
     Get.put(IssueServiceSupabase());
+    print('IssueServiceSupabase put successfully');
 
     // Store Firebase initialization status for the app to use
     Get.put<bool>(firebaseInitialized, tag: 'firebaseInitialized');
